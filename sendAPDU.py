@@ -3,7 +3,7 @@
 # Filename : sendAPDU.py
 # python version 2.7 base on (pyscard,swig,VC for python2.7)
 
-import os,sys
+import os,sys,re
 from time import sleep
 import traceback
 from smartcard.System import readers
@@ -52,10 +52,11 @@ cardMonitor.addObserver(cardObserver)
 #send APDU
 def send_APDU(reader,cmdList):
 	passFlag = 1
-	for cmds in cmdList:
-		# cmds.format = 0,80780000,9000
-		cmds = cmds.split(',');
+	for inStr in cmdList:
 
+		# cmds.format = 0,80780000,9000
+		cmds = inStr.split(',');
+		
 		line = cmds[0]
 		cmd = cmds[1]
 		if(len(cmds)>=3):
@@ -65,17 +66,20 @@ def send_APDU(reader,cmdList):
 		
 		data,sw1,sw2 = reader.transmit(list(bytearray.fromhex(cmd)))
 		
-		sw = toHexString(data) + str.format('%02X %02X' % (sw1,sw2))
-		sw = sw.replace(' ','')
+		outStr = toHexString(data) + str.format('%02X %02X' % (sw1,sw2))
+		outStr = outStr.replace(' ','')
+		
+		success = outStr.endswith(target);
+		print(" >>line "+inStr)
+		print("		<< "+outStr)
 
-		if(len(target)>1 
-			and not sw.endswith(target)):
+		if(len(target)>1 and not success):
 			passFlag = 0;
 			print('--Assert Fail:')
 			print('    Line : '+line)
 			print('    cmd : '+cmd)
 			print('    target : '+target)
-			print('    sw     : '+sw)
+			print('    sw     : '+outStr)
 			break;
 	if(passFlag):
 		print("--SUCCESS--")
@@ -91,7 +95,7 @@ def readFile(fileName):
 	try:
 		for lineCmd in file:
 			lineNum += 1
-			lineCmd = lineCmd.strip()
+			lineCmd = lineCmd.strip().upper()
 			
 			# line empty or note
 			if(len(lineCmd)<1
@@ -99,23 +103,22 @@ def readFile(fileName):
 				continue
 			
 			# del note: note startWith ;
+			index=0
 			index = lineCmd.find(';')
 			if index>0:
 				lineCmd = lineCmd[0,index]
 			
-			lineCmd = lineCmd.upper().replace(' ','')
-			lineCmd = lineCmd.replace('0X','').replace('"','')
 			
 			#replace params
 			for key in params:
 				lineCmd = lineCmd.replace(key,params[key])
-				print(lineCmd,key,params[key])
 			
 			if(lineCmd.startswith('ASSERT')):
 				if(len(cmd_list)>0):
 					cmd_list[-1] = cmd_list[-1] + ',' + lineCmd[6:]
 				continue;
 
+			index=0
 			index = lineCmd.find('=')
 			
 			if(lineCmd.startswith('APDU=')):
@@ -125,17 +128,20 @@ def readFile(fileName):
 			elif(lineCmd.startswith('EDIT')):  # add params
 				lineCmd = lineCmd[4:];
 				if index>0:
-					params[lineCmd[0:index]] = lineCmd[index+1:]
+					key = lineCmd[0:index].strip()
+					params[key] = lineCmd[index+1:]
 				continue;
 			elif(index>0):
-				params[lineCmd[0:index]] = lineCmd[index+1:]
+				key = lineCmd[0:index].strip()
+				params[key] = lineCmd[index+1:]
 				continue;
 			else:
 				lineCmd=''
 
 			# add to list
 			if(len(lineCmd)>1):
-				cmd_list.append(str(lineNum)+ ','+lineCmd)
+				cmd = re.sub("0x|0X|[.| '\"?!@#$%^&*()+=_-]+|[G-Zg-z]+",'',lineCmd)
+				cmd_list.append(str(lineNum)+ ','+ cmd)
 				
 
 	finally:
