@@ -195,11 +195,13 @@ def gsimTest(reader,cmdList):
 				target = cmds[2]
 			else:
 				target = ''
+			print('>> '+cmd)
 			data,sw1,sw2 = reader.transmit(list(bytearray.fromhex(cmd)))
 			
 			outStr = toHexString(data) + str.format('%02X %02X' % (sw1,sw2))
 			outStr = outStr.replace(' ','')
-
+			print('<< '+outStr)
+			
 			if sw1 != 0x90:
 				key = cmd[0:6];
 				if test_map[key] == 0:
