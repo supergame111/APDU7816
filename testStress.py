@@ -318,23 +318,23 @@ if(len(cmdList)<=0):
 	
 selectPort = True;
 port = args.port;
-readers = readers();
-if(port in range(len(readers)) ):
-	card = readers[port]
+readList = readers();
+if(port in range(len(readList)) ):
+	card = readList[port]
 	selectPort = False
 else:
 	selectPort = True;
 
 while(selectPort):
-	readers = readers();
-	read_len = len(readers);
+	readList = readers();
+	read_len = len(readList);
 	print('please select a port:')
 	for i in range(read_len):
-		print('\t{1} -- {2}'.format(i,readers[i]))
+		print('\t{0} -- {1}'.format(i,readList[i]))
 	port = int(sys.stdin.read(1));
-	if(port in range[0,read_len]):
-		card = readers[port];
-		print('select port:{1},name={2}'.format(port,card));
+	if(port in range(read_len)):
+		card = readList[port];
+		print('select port:{0},card={1}'.format(port,card));
 		selectPort = False
 	else:
 		print('select port invalid.')
